@@ -19,7 +19,7 @@ export const Scrollbase =()=> {
     if (!mountRef.current) return;
     const sizes = {
       width: mountRef.current.clientWidth,
-      height: mountRef.current.getBoundingClientRect().height, // Get actual height
+      height: mountRef.current.getBoundingClientRect().height,
     };
 
     const renderer = new THREE.WebGLRenderer({antialias: true });
@@ -35,7 +35,7 @@ export const Scrollbase =()=> {
       0.1,
       100
     );
-    camera.position.set(0, 1, 30); // Set initial position correctly
+    camera.position.set(0, 1, 30);
     const cameraGroup = new THREE.Group()
     scene.add(cameraGroup)
     cameraGroup.add(camera)
@@ -43,24 +43,33 @@ export const Scrollbase =()=> {
     let scrollY = window.scrollY
     const scroll = () => {
         scrollY = window.scrollY;
-        // Optional: Move the camera group based on scroll
-        // cameraGroup.position.y = -scrollY / sizes.height * objDistance; // Adjust sensitivity
+        // cameraGroup.position.y = -scrollY / sizes.height * objDistance;
       };
     const raycaster = new THREE.Raycaster();
     const mouseVector2 = new THREE.Vector2();
 
-    const handleMousemove = (e) => {
-      mouseVector2.x = (e.clientX / sizes.width) * 2 - 1;
-      mouseVector2.y = - (e.clientY / sizes.height) * 2 + 1; // Y is inverted
-      cursor.x = e.clientX / sizes.width - 0.5
-      cursor.y = e.clientY / sizes.height - 0.5
+    // --- CHANGE 1: Corrected Mouse Coordinate Calculation ---
+    const handleMousemove = (e: MouseEvent) => {
+      if (!mountRef.current) return;
+      const rect = canvas.getBoundingClientRect();
+      // Calculate mouse position relative to the canvas element
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      // Convert to normalized device coordinates (-1 to +1)
+      mouseVector2.x = (x / rect.width) * 2 - 1;
+      mouseVector2.y = -(y / rect.height) * 2 + 1;
+
+      // Update cursor for parallax effect (also relative to canvas)
+      cursor.x = (x / rect.width) - 0.5;
+      cursor.y = (y / rect.height) - 0.5;
     }
 
     const parameters = {
         materialColor: '#1cca88',
-        glowColor: '#d62977', // Color for the glowing effect
-        glowScaleFactor: 1.05, // How much bigger the glow mesh is RELATIVE to the original
-        glowOpacityPulse: 0.8 // Max opacity for the glow pulse
+        glowColor: '#d62977',
+        glowScaleFactor: 1.05,
+        glowOpacityPulse: 0.8
     }
 
     const textureLoader = new THREE.TextureLoader()
@@ -73,21 +82,16 @@ export const Scrollbase =()=> {
       gradientMap: gradientTexture,
     });
 
-    gui.addColor(parameters, 'materialColor')
-       .onChange(()=>{
-            material.color.set(parameters.materialColor)
-       })
-    gui.addColor(parameters, 'glowColor')
-       .onChange(()=>{
-            glowMeshesRef.current.forEach(glowMesh => {
-                 if (glowMesh.material instanceof THREE.MeshBasicMaterial) {
-                     glowMesh.material.color.set(parameters.glowColor);
-                 }
-            });
-       });
-    gui.add(parameters, 'glowScaleFactor', 1.0, 1.2, 0.001).name('GlowSizeFactor'); // Renamed for clarity
+    gui.addColor(parameters, 'materialColor').onChange(() => material.color.set(parameters.materialColor))
+    gui.addColor(parameters, 'glowColor').onChange(() => {
+        glowMeshesRef.current.forEach(glowMesh => {
+            if (glowMesh.material instanceof THREE.MeshBasicMaterial) {
+                glowMesh.material.color.set(parameters.glowColor);
+            }
+        });
+    });
+    gui.add(parameters, 'glowScaleFactor', 1.0, 1.2, 0.001).name('GlowSizeFactor');
     gui.add(parameters, 'glowOpacityPulse', 0.1, 1.0, 0.01).name('GlowOpacity');
-
 
     const light = new THREE.DirectionalLight(0xffffff, 1);
     light.position.set(1, 1, 0).normalize();
@@ -95,51 +99,37 @@ export const Scrollbase =()=> {
 
     const controls = new OrbitControls(camera, canvas);
     controls.enableDamping = true;
-    controls.enabled = false; // Disable OrbitControls initially
+    controls.enabled = false;
 
     const objDistance = 4
 
     // --- Original Meshes ---
-    const mesh1 = new THREE.Mesh(
-            new THREE.TorusGeometry(1, 0.4, 16, 60),
-            material
-        )
+    const mesh1 = new THREE.Mesh(new THREE.TorusGeometry(1, 0.4, 16, 60), material);
+    const mesh2 = new THREE.Mesh(new THREE.ConeGeometry(1, 2, 32), material);
+    const mesh3 = new THREE.Mesh(new THREE.TorusKnotGeometry(0.8, 0.35, 100, 16), material);
 
-    const mesh2 = new THREE.Mesh(
-            new THREE.ConeGeometry(1, 2, 32),
-            material
-        )
-    const mesh3 = new THREE.Mesh(
-            new THREE.TorusKnotGeometry(0.8, 0.35, 100, 16),
-            material
-        )
+    mesh1.position.set(2, -objDistance * 0, 0);
+    mesh2.position.set(-2, -objDistance * 1, 0);
+    mesh3.position.set(2, -objDistance * 2, 0);
 
-    mesh1.position.y = -objDistance * 0
-    mesh2.position.y = -objDistance * 1
-    mesh3.position.y = -objDistance * 2
+    // --- CHANGE 2: Create a dedicated array for hoverable objects ---
+    const objectsToTest = [mesh1, mesh2, mesh3];
 
-    mesh1.position.x = 2
-    mesh2.position.x = -2
-    mesh3.position.x = 2
 
     // --- Glow Meshes ---
-    const createGlowMesh = (originalMesh) => {
+    const createGlowMesh = (originalMesh: THREE.Mesh) => {
         const glowMaterial = new THREE.MeshBasicMaterial({
             color: parameters.glowColor,
             transparent: true,
-            opacity: 0, // Start hidden
-            blending: THREE.AdditiveBlending, // Make it glow
-            depthWrite: false, // Don't write to depth buffer
-            depthTest: false,  // Disable depth testing
-            side: THREE.BackSide // Render both sides for a full halo effect
+            opacity: 0,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            depthTest: false,
+            side: THREE.BackSide
         });
-
-        // Use the same geometry, but clone it to be safe
-        const glowMesh = new THREE.Mesh(originalMesh.geometry.clone(), glowMaterial);
-
+        const glowMesh = new THREE.Mesh(originalMesh.geometry, glowMaterial); // No need to clone, geometry is shared
         glowMesh.position.copy(originalMesh.position);
         originalMesh.userData.glowMesh = glowMesh;
-
         return glowMesh;
     };
 
@@ -147,104 +137,68 @@ export const Scrollbase =()=> {
     const glowMesh2 = createGlowMesh(mesh2);
     const glowMesh3 = createGlowMesh(mesh3);
 
-    // Add glow meshes to the ref for cleanup and GUI color update
     glowMeshesRef.current.push(glowMesh1, glowMesh2, glowMesh3);
 
-
     const group = new THREE.Group()
-    // Add both original and glow meshes to the group
-    group.add(mesh1, glowMesh1, mesh2, glowMesh2, mesh3, glowMesh3);
+    group.add(...objectsToTest, ...glowMeshesRef.current);
     scene.add(group)
 
+    // --- Comet Animation (Particle System) ---
+    // ... (Your comet code is fine, no changes needed here) ...
+    const numberOfComets = 2000;
+    const cometSpeedRange = { min: 0.5, max: 20 };
+    const cometYRange = { min: -15, max: 15 };
+    const cometZRange = { min: -15, max: 15 };
+    const endXThreshold = 30;
 
-    // --- Comet Animation (Existing Particle System) ---
-     const numberOfComets = 2000;
-     const cometSpeedRange = { min: 0.5, max: 20 };
-     const cometYRange = { min: -15, max: 15 };
-     const cometZRange = { min: -15, max: 15 };
-     const endXThreshold = 30;
-
-     for (let i = 0; i < numberOfComets; i++) {
-         const particleGeometry = new THREE.BufferGeometry();
-         const vertices = new Float32Array([0, 0, 0]);
-         particleGeometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-         const particleMaterial = new THREE.PointsMaterial({
-             color: 0xffffff,
-             size: 0.5,
-             sizeAttenuation: true,
-             map: snowTexture
-         });
-         const comet = new THREE.Points(particleGeometry, particleMaterial);
-
-         const initialY = Math.random() * (cometYRange.max - cometYRange.min) + cometYRange.min;
-         const initialZ = Math.random() * (cometZRange.max - cometZRange.min) + cometZRange.min;
-         const initialX = Math.random() * (cometZRange.max - cometZRange.min) + cometZRange.min - 10;
-
-         comet.position.set(initialX, initialY, initialZ);
-
-         const speed = Math.random() * (cometSpeedRange.max - cometSpeedRange.min) + cometSpeedRange.min;
-         const velocity = new THREE.Vector3(speed, (Math.random() - 0.5) * speed * 0.1, (Math.random() - 0.5) * speed * 0.1);
-
-         comet.userData.velocity = velocity;
-         comet.userData.initialPosition = comet.position.clone();
-         comet.userData.endXThreshold = endXThreshold;
-
-         scene.add(comet);
-     }
+    for (let i = 0; i < numberOfComets; i++) {
+        const particleGeometry = new THREE.BufferGeometry();
+        const vertices = new Float32Array([0, 0, 0]);
+        particleGeometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+        const particleMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.5, sizeAttenuation: true, map: snowTexture });
+        const comet = new THREE.Points(particleGeometry, particleMaterial);
+        const initialY = Math.random() * (cometYRange.max - cometYRange.min) + cometYRange.min;
+        const initialZ = Math.random() * (cometZRange.max - cometZRange.min) + cometZRange.min;
+        const initialX = Math.random() * (cometZRange.max - cometZRange.min) + cometZRange.min - 10;
+        comet.position.set(initialX, initialY, initialZ);
+        const speed = Math.random() * (cometSpeedRange.max - cometSpeedRange.min) + cometSpeedRange.min;
+        const velocity = new THREE.Vector3(speed, (Math.random() - 0.5) * speed * 0.1, (Math.random() - 0.5) * speed * 0.1);
+        comet.userData = { velocity, initialPosition: comet.position.clone(), endXThreshold };
+        scene.add(comet);
+    }
     // --- End Comet Animation ---
 
+    const normalScale = 1;
+    const hoverScaleFactor = 1.2;
+    const pulseDuration = 0.8;
+    const scaleDuration = pulseDuration * 0.5;
 
-    // --- Hover Animation Parameters ---
-    const normalScale = 1; // Scale for the original mesh itself when not hovered
-    const hoverScaleFactor = 1.2; // How much bigger the original mesh scales on hover
-    const pulseDuration = 0.8; // Duration for one heartbeat pulse cycle
-    const scaleDuration = pulseDuration * 0.5; // Time for the original mesh scale up/down
-
-
-    // --- Animation Loop ---
     let previousTime = 0
-
     const animate = () => {
       const elapsedTime = clock.getElapsedTime();
       const deltaTime = elapsedTime - previousTime
       previousTime = elapsedTime
 
-      // --- Camera Parallax ---
       cameraGroup.position.x += (cursor.x * 10 - cameraGroup.position.x) * deltaTime * 3
       cameraGroup.position.y += (-cursor.y * 10 - cameraGroup.position.y) * deltaTime * 3
 
-      // --- Object Animation (Rotation and Glow Scale Sync) ---
-      // Iterate through all children in the group
-      group.children.forEach(child => {
-          // Check if this child is one of the original meshes
-          if (child instanceof THREE.Mesh && child.userData.hasOwnProperty('glowMesh')) {
-              const originalMesh = child; // The child is the original mesh
-              const glowMesh = originalMesh.userData.glowMesh; // Get its corresponding glow mesh
+      // --- Object & Glow Animation ---
+      objectsToTest.forEach(originalMesh => {
+          const glowMesh = originalMesh.userData.glowMesh as THREE.Mesh;
 
-              // Apply individual rotation to the original mesh ONLY IF it's NOT currently hovered
-              if (originalMesh !== currentHoveredObjectRef.current) {
-                   originalMesh.rotation.x += (Math.sin(elapsedTime * 0.5) - 0.5) * deltaTime * 2;
-                   originalMesh.rotation.y += (Math.cos(elapsedTime * 0.5) - 0.5) * deltaTime * 2;
-              }
-
-              // --- Sync Glow Mesh Scale and Rotation ---
-              // The glow mesh's scale should be the original mesh's CURRENT scale * glowScaleFactor
-              // This handles both the normal state (scale 1) and the pulsed state (scale > 1)
-              if (glowMesh instanceof THREE.Mesh) {
-                 glowMesh.scale.copy(originalMesh.scale).multiplyScalar(parameters.glowScaleFactor);
-
-                 // The glow mesh's rotation should always match the original mesh's rotation
-                 glowMesh.rotation.copy(originalMesh.rotation);
-              }
+          if (originalMesh !== currentHoveredObjectRef.current) {
+              originalMesh.rotation.x += (Math.sin(elapsedTime * 0.5) - 0.5) * deltaTime * 2;
+              originalMesh.rotation.y += (Math.cos(elapsedTime * 0.5) - 0.5) * deltaTime * 2;
           }
-           // If the child is NOT an original mesh (it's a glow mesh we created earlier),
-           // its position, rotation, and scale are handled here based on its original mesh parent,
-           // and its opacity is handled by the GSAP tween on hover.
+          if (glowMesh) {
+             glowMesh.scale.copy(originalMesh.scale).multiplyScalar(parameters.glowScaleFactor);
+             glowMesh.rotation.copy(originalMesh.rotation);
+          }
       });
 
-
-      // --- Comet Animation (Existing) ---
-       for ( let i = 0; i < scene.children.length; i ++ ) {
+      // --- Comet Animation Update ---
+      // ... (Your comet animation update code is fine) ...
+      for ( let i = 0; i < scene.children.length; i ++ ) {
         const object = scene.children[ i ];
         if ( object instanceof THREE.Points && object.userData.velocity ) {
           object.position.addScaledVector(object.userData.velocity, deltaTime);
@@ -257,87 +211,49 @@ export const Scrollbase =()=> {
         }
       }
 
-
       // --- Hover Detection and Animation Logic ---
       raycaster.setFromCamera(mouseVector2, camera);
-      // Raycast against ALL children in the group (original and glow meshes)
-      // We'll filter results to make sure we only react to original meshes
-      const intersects = raycaster.intersectObjects(group.children);
 
-      let intersectedOriginalMesh: THREE.Mesh | null = null;
-      if (intersects.length > 0 && intersects[0].object instanceof THREE.Mesh) {
-           // We only care if the intersected object is one of the *original* meshes
-           // Check if it has the 'glowMesh' property in userData
-           const hitObject = intersects[0].object as THREE.Mesh;
-           if (hitObject.userData.hasOwnProperty('glowMesh')) {
-             intersectedOriginalMesh = hitObject;
-           }
-      }
+      // --- CHANGE 2 (cont.): Raycast against the specific list of objects ---
+      const intersects = raycaster.intersectObjects(objectsToTest);
 
-      // --- Handle Hover State Change ---
+      const intersectedOriginalMesh = (intersects.length > 0 ? intersects[0].object : null) as THREE.Mesh | null;
+
       if (intersectedOriginalMesh !== currentHoveredObjectRef.current) {
-
-        // If mouse left the *previously* hovered object
         if (currentHoveredObjectRef.current) {
-            // Kill GSAP tweens on the original mesh scale
-            gsap.killTweensOf(currentHoveredObjectRef.current.scale);
-            // Tween original mesh scale back down to normal
-            gsap.to(currentHoveredObjectRef.current.scale, {
-                x: normalScale,
-                y: normalScale,
-                z: normalScale,
-                duration: scaleDuration,
-                ease: "power2.out"
+            const prevOriginalMesh = currentHoveredObjectRef.current;
+            const prevGlowMesh = prevOriginalMesh.userData.glowMesh;
+
+            gsap.killTweensOf(prevOriginalMesh.scale);
+            gsap.to(prevOriginalMesh.scale, {
+                x: normalScale, y: normalScale, z: normalScale,
+                duration: scaleDuration, ease: "power2.out"
             });
 
-            // Get the corresponding glow mesh
-            const prevGlowMesh = currentHoveredObjectRef.current.userData.glowMesh;
-            if (prevGlowMesh && prevGlowMesh.material instanceof THREE.MeshBasicMaterial) {
-                 // Kill GSAP tweens on the glow material opacity
+            if (prevGlowMesh?.material) {
                  gsap.killTweensOf(prevGlowMesh.material);
-                 // Tween glow material opacity to 0
-                 gsap.to(prevGlowMesh.material, {
-                     opacity: 0,
-                     duration: scaleDuration * 0.5, // Fade out faster
-                 });
+                 gsap.to(prevGlowMesh.material, { opacity: 0, duration: scaleDuration * 0.5 });
             }
         }
 
-        // Update the currently hovered object ref
         currentHoveredObjectRef.current = intersectedOriginalMesh;
 
-        // If mouse entered a *new* object
         if (currentHoveredObjectRef.current) {
-             // --- Original Mesh Pulse Animation ---
-             gsap.killTweensOf(currentHoveredObjectRef.current.scale);
-             gsap.to(currentHoveredObjectRef.current.scale, {
-                 x: hoverScaleFactor,
-                 y: hoverScaleFactor,
-                 z: hoverScaleFactor,
-                 duration: scaleDuration,
-                 ease: "power2.out",
-                 yoyo: true,
-                 repeat: -1,
-                 repeatDelay: 0
+             const currentOriginalMesh = currentHoveredObjectRef.current;
+             const currentGlowMesh = currentOriginalMesh.userData.glowMesh;
+
+             gsap.killTweensOf(currentOriginalMesh.scale);
+             gsap.to(currentOriginalMesh.scale, {
+                 x: hoverScaleFactor, y: hoverScaleFactor, z: hoverScaleFactor,
+                 duration: scaleDuration, ease: "power2.out",
+                 yoyo: true, repeat: -1
              });
 
-             // --- Glow Mesh Animation (Opacity Pulse) ---
-             const currentGlowMesh = currentHoveredObjectRef.current.userData.glowMesh;
-             if (currentGlowMesh && currentGlowMesh.material instanceof THREE.MeshBasicMaterial) {
-                 // Kill any existing tweens on the glow material opacity
+             if (currentGlowMesh?.material) {
                  gsap.killTweensOf(currentGlowMesh.material);
-
-                 // Start the pulse animation for glow material opacity
                  gsap.fromTo(currentGlowMesh.material,
-                     { opacity: 0 }, // Start from fully transparent
-                     {
-                         opacity: parameters.glowOpacityPulse, // Pulse up to max glow opacity
-                         duration: pulseDuration * 0.5, // Half the pulse duration
-                         ease: "power2.out",
-                         yoyo: true, // Pulse back down towards a lower opacity (or 0)
-                         repeat: -1, // Repeat infinitely
-                         repeatDelay: 0
-                     }
+                     { opacity: 0 },
+                     { opacity: parameters.glowOpacityPulse, duration: pulseDuration * 0.5, ease: "power2.out", yoyo: true, repeat: -1 }
                  );
              }
         }
@@ -348,8 +264,18 @@ export const Scrollbase =()=> {
       requestAnimationFrame(animate);
     };
 
-    // --- Event Listeners ---
-    const handleResizeControl = () => onResize(camera, renderer);
+    //const handleResizeControl = () => onResize(camera, renderer);
+    const handleResizeControl = () => {
+      // Use the canvas's client dimensions to set sizes
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  };
     const handleDbClick = () => dbClick(canvas)
 
     window.addEventListener('scroll', scroll);
@@ -358,71 +284,49 @@ export const Scrollbase =()=> {
     window.addEventListener("mousemove", handleMousemove);
 
     animate();
-    // intializeRendererControls(gui, renderer) // Optional GUI for renderer settings
 
-    // --- Cleanup Function ---
+    // --- CHANGE 3: Refined Cleanup Function ---
     return () => {
       window.removeEventListener('scroll', scroll);
       window.removeEventListener("dblclick", handleDbClick);
       window.removeEventListener("resize", handleResizeControl);
       window.removeEventListener("mousemove", handleMousemove);
 
+      // Kill all GSAP animations BEFORE disposing objects
+      gsap.globalTimeline.clear(); // A more robust way to kill all tweens
+      
       // Dispose Three.js objects
-      group.children.forEach(child => {
-          // Dispose geometry if it's an original mesh (geometry is shared material)
-          if (child instanceof THREE.Mesh && child.userData.hasOwnProperty('glowMesh')) {
-              child.geometry.dispose(); // Dispose original mesh geometry
-          }
-          // Dispose material if it's a glow mesh
-          if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshBasicMaterial) {
-              child.material.dispose(); // Dispose glow mesh material
-               // No need to dispose glow mesh geometry here, it was a clone of the original
-          }
-      });
-      // Dispose shared material for original meshes
-      material.dispose();
-
-       // Dispose comet objects
-       scene.children.forEach(obj => {
-          if (obj instanceof THREE.Points) {
-              obj.geometry.dispose();
-              if (Array.isArray(obj.material)) {
-                  obj.material.forEach(m => m.dispose());
+      scene.traverse(object => {
+          if (object instanceof THREE.Mesh) {
+              object.geometry.dispose();
+              if (Array.isArray(object.material)) {
+                  object.material.forEach(material => material.dispose());
               } else {
-                  obj.material.dispose();
+                  object.material.dispose();
               }
           }
+          if (object instanceof THREE.Points) {
+            object.geometry.dispose();
+            if (Array.isArray(object.material)) {
+                object.material.forEach(material => material.dispose());
+            } else {
+                object.material.dispose();
+            }
+          }
       });
-
-       group.clear(); // Removes all children (original and glow meshes)
-       scene.remove(group);
-
+      gradientTexture.dispose();
+      snowTexture.dispose();
+      
+      scene.clear();
       renderer.dispose();
       gui.destroy();
 
-      // Kill any potentially running GSAP tweens on component unmount
-      // Iterate through all meshes in the group
-       group.children.forEach(child => {
-           if (child instanceof THREE.Mesh) {
-                gsap.killTweensOf(child.scale); // Kill scale tweens (original meshes)
-                if (child.material instanceof THREE.MeshBasicMaterial || child.material instanceof THREE.MeshToonMaterial) {
-                     gsap.killTweensOf(child.material); // Kill material tweens (glow meshes opacity)
-                }
-           }
-       });
-       if (currentHoveredObjectRef.current) {
-            const glowMesh = currentHoveredObjectRef.current.userData.glowMesh;
-             if (glowMesh && glowMesh.material instanceof THREE.MeshBasicMaterial) {
-                 gsap.killTweensOf(glowMesh.material);
-             }
-       }
-
-
-      if (mountRef.current && mountRef.current.contains(renderer.domElement)) {
-        mountRef.current.removeChild(renderer.domElement);
+      if (mountRef.current && mountRef.current.contains(canvas)) {
+        mountRef.current.removeChild(canvas);
       }
-       // Clear the ref
-       glowMeshesRef.current = [];
+      
+      glowMeshesRef.current = [];
+      currentHoveredObjectRef.current = null;
     };
   }, []);
 

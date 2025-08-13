@@ -8,6 +8,7 @@ import { intializeRendererControls } from "../util/rendererControl";
 const clock = new THREE.Clock();
 export const Memorytest = () => {
   const mountRef = useRef<HTMLDivElement>(null);
+  const animationFrameId = useRef(0);
 
   useEffect(() => {
     const gui = new GUI();
@@ -99,6 +100,7 @@ export const Memorytest = () => {
       if (mountRef.current) {
         mountRef.current.removeChild(renderer.domElement);
       }
+      cancelAnimationFrame(animationFrameId.current);
       removeEventListener("resize", handleResizeControl);
       removeEventListener("dblclick", dbClick);
       renderer.dispose();

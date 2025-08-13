@@ -26,7 +26,7 @@ const clock = new THREE.Clock()
 
 export default function Loadfont() {
     const mountRef = useRef<HTMLDivElement>(null);
-
+    const animationFrameId = useRef(0);
     useEffect(() => {
       const gui = new GUI();
       if (!mountRef.current) return;
@@ -202,9 +202,32 @@ export default function Loadfont() {
         if (mountRef.current) {
           mountRef.current.removeChild(renderer.domElement);
         }
+        cancelAnimationFrame(animationFrameId.current);
         removeEventListener('mousemove', handleMouseMove);
         removeEventListener('resize', handleResizeControl);
         removeEventListener('dblclick', dbClick);
+
+        scene.traverse((object) => {
+          if (object instanceof THREE.Mesh) {
+              if(object.geometry) object.geometry.dispose();
+              if(object.material) {
+                  // If the material is an array, dispose each one
+                  if(Array.isArray(object.material)) {
+                      object.material.forEach(material => material.dispose());
+                  } else {
+                      object.material.dispose();
+                  }
+              }
+          }
+      });
+
+        donutGeometry.dispose();
+        geometry.dispose();
+        if (material) material.dispose(); // Check if font has loaded
+        donutMaterial.dispose();
+        controls.dispose();
+        renderer.dispose();
+        matcapTexture.dispose();
         gui.destroy()
       };
     }, []);
