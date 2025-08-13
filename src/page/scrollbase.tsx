@@ -3,7 +3,6 @@ import { onResize, dbClick } from '../util/utils'
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import GUI from "lil-gui";
-import {intializeRendererControls} from '../util/rendererControl'
 import { gsap } from "gsap"
 
 export const Scrollbase =()=> {

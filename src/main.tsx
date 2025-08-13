@@ -11,6 +11,7 @@ import { Test2 } from './page/test2.tsx';
 import { Test3 } from './page/test3.tsx';
 import { Scrollbase } from './page/scrollbase.tsx';
 import Game from './page/game.tsx';
+import { Memorytest } from './page/memorytest.tsx';
 
 createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
@@ -25,6 +26,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path='galaxy' element={<Test2 />} />
         <Route path='scrollbase' element={<Scrollbase />} />
         <Route path='game' element={<Game />} />
+        <Route path='memorytest' element={<Memorytest />} />
       </Route>
     </Routes>
   </BrowserRouter>
