@@ -14,7 +14,7 @@ interface Vec3D {
 }
 
 const clock = new THREE.Clock();
-export const Test = () => {
+export const Test3 = () => {
   const mountRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const gui = new GUI({ width: 300 });

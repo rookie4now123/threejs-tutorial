@@ -5,5 +5,5 @@ export const navItems = [
     { id: 'contact', title: 'Storm', path: '/scrollbase' },
     { id: 'test', title: 'Test', path: '/test' },
     { id: 'Weiredface', title: 'Weiredface', path: 'Weiredface' },
-
+    { id: 'test3', title: 'Physics', path: '/test3' },
   ];
