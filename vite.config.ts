@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [react(),
             tailwindcss(),
   ],
+  base:process.env.VITE_BASE_PATH || "/threejs-tutorial",
   resolve: {
     alias: {
       '@assets': path.resolve(__dirname, './src/assets'), // Alias for assets
