@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+*
+
+{
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body
+{
+    overflow: hidden;
+}
+
+.webgl
+{
+    position: fixed;
+    top: 0;
+    left: 0;
+    outline: none;
+}
+
+
+.section
+{
+    display: flex;
+    align-items: center;
+    height: 100vh;
+    position: relative;
+    font-family: 'Cabin', sans-serif;
+    color: #ffeded;
+    text-transform: uppercase;
+    font-size: 7vmin;
+    padding-left: 10%;
+    padding-right: 10%;
+}
+
+section:nth-child(odd)
+{
+    justify-content: flex-end;
+}
+
+h1{
+    @apply max-w-md mx-auto mb-4 
+    pt-40 pb-0 border-b-6 border-b-purple-400;
+  }
+
+.low-prio {
+    background-color: blue;
+    color: white;
+}
+.high-prio {
+    background-color: red;
+    color: white;
+}

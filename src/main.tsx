@@ -1,0 +1,29 @@
+import { createRoot } from 'react-dom/client'
+import './index.css'
+import App from './App.tsx'
+import { BrowserRouter, Routes, Route } from "react-router";
+import OnlineUser from './page/OnlineUser.tsx';
+import Texture from './page/Texture.tsx';
+import Loadfont from './page/Loadfont.tsx';
+import Light from './page/lights.tsx';
+import Haunted from './page/haunted.tsx';
+import { Test2 } from './page/test2.tsx';
+import { Scrollbase } from './page/scrollbase.tsx';
+import Game from './page/game.tsx';
+
+createRoot(document.getElementById('root')!).render(
+    <BrowserRouter>
+    <Routes>
+      <Route path="/" element={<App />} >
+        <Route index element={<Loadfont />} />
+        <Route path="Weiredface" element={<OnlineUser />} />
+        <Route path="texture" element={<Texture />} />
+        <Route path="lights" element={<Light />} />
+        <Route path='haunted' element={<Haunted />} />
+        <Route path='galaxy' element={<Test2 />} />
+        <Route path='scrollbase' element={<Scrollbase />} />
+        <Route path='game' element={<Game />} />
+      </Route>
+    </Routes>
+  </BrowserRouter>
+)
