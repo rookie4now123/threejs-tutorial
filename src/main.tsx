@@ -5,7 +5,7 @@ import { BrowserRouter, Routes, Route } from "react-router";
 import OnlineUser from './page/OnlineUser.tsx';
 import Texture from './page/Texture.tsx';
 import Loadfont from './page/Loadfont.tsx';
-import Light from './page/lights.tsx';
+import Demo from './page/demo.tsx';
 import Haunted from './page/haunted.tsx';
 import { Test2 } from './page/test2.tsx';
 import { Test3 } from './page/test3.tsx';
@@ -21,7 +21,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="Weiredface" element={<OnlineUser />} />
         <Route path="texture" element={<Texture />} />
         <Route path='test3' element={<Test3 />} />
-        <Route path="lights" element={<Light />} />
+        <Route path="pixel" element={<Demo />} />
         <Route path='haunted' element={<Haunted />} />
         <Route path='galaxy' element={<Test2 />} />
         <Route path='scrollbase' element={<Scrollbase />} />
