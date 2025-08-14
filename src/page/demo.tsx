@@ -97,8 +97,10 @@ export default function Demo() {
       </div>
 
       <div className="w-[650px] grow">
+        <p>Preview</p>
       <section className="flex gap-[120px] flex-row">
-        {/* <PixelifyImage
+        
+        <PixelifyImage
           src={policebadge}
           width={250}
           height={250}
@@ -106,14 +108,7 @@ export default function Demo() {
           centered={centered}
           fillTransparencyColor={fillColor}
         />
-        <PixelifyImage
-          src={fingerprint}
-          width={250}
-          height={250}
-          pixelSize={pixelSize}
-          centered={centered}
-          fillTransparencyColor={fillColor}
-        /> */}
+ 
                    <ImageProcessor
         pixelSize={pixelSize}
         centered={centered}
