@@ -12,7 +12,7 @@ import { Test3 } from './page/test3.tsx';
 import { Scrollbase } from './page/scrollbase.tsx';
 import Game from './page/game.tsx';
 import { Memorytest } from './page/memorytest.tsx';
-
+import Projection from './page/Projection.tsx';
 createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
     <Routes>
@@ -27,6 +27,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path='scrollbase' element={<Scrollbase />} />
         <Route path='game' element={<Game />} />
         <Route path='memorytest' element={<Memorytest />} />
+        <Route path='projection' element={<Projection />} />
       </Route>
     </Routes>
   </BrowserRouter>

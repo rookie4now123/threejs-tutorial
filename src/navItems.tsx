@@ -1,5 +1,6 @@
 export const navItems = [
     { id: 'font', title: 'Introduction', path: '/' },
+    { id: 'projection', title: 'Projection', path: '/projection' },
     { id: 'demo', title: 'Pixelify', path: '/pixel' },
     { id: 'galaxy', title: 'Galaxy', path: '/galaxy' },
     { id: 'contact', title: 'Storm', path: '/scrollbase' },
